@@ -1,0 +1,214 @@
+// This is a schema file for Prisma ORM
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id               String             @id @default(uuid())
+  email            String             @unique
+  name             String?
+  image            String?
+  password         String
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  goals            Goal[]
+  progress         Progress[]
+  posts            Post[]
+  achievements     Achievement[]
+  settings         UserSettings?
+  notifications    Notification[]
+  friendsInitiated FriendConnection[] @relation("UserFriends")
+  friendsAccepted  FriendConnection[] @relation("FriendUser")
+  createdChallenges Challenge[]       @relation("ChallengeCreator")
+  participatedChallenges ChallengeParticipation[]
+  workouts         Workout[]
+  nutritionLogs    NutritionLog[]
+  bodyMeasurements BodyMeasurement[]
+}
+
+model Goal {
+  id           String     @id @default(uuid())
+  userId       String
+  title        String
+  description  String?
+  targetValue  Float
+  currentValue Float      @default(0)
+  unit         String
+  goalType     GoalType
+  startDate    DateTime
+  targetDate   DateTime
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  user         User       @relation(fields: [userId], references: [id])
+  progress     Progress[]
+  achievements Achievement[]
+}
+
+enum GoalType {
+  weight_loss
+  muscle_gain
+  endurance
+  flexibility
+  custom
+}
+
+model Progress {
+  id        String   @id @default(uuid())
+  goalId    String
+  userId    String
+  value     Float
+  date      DateTime
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  goal      Goal     @relation(fields: [goalId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Post {
+  id        String   @id @default(uuid())
+  userId    String
+  content   String
+  goalId    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Achievement {
+  id          String   @id @default(uuid())
+  userId      String
+  goalId      String
+  title       String
+  description String
+  achievedAt  DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id])
+  goal        Goal     @relation(fields: [goalId], references: [id])
+}
+
+model UserSettings {
+  id                   String   @id @default(uuid())
+  userId               String   @unique
+  measurementSystem    String
+  theme                String
+  notificationsEnabled Boolean
+  privacyLevel         String
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  user                 User     @relation(fields: [userId], references: [id])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String
+  content   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model FriendConnection {
+  id        String   @id @default(uuid())
+  userId    String
+  friendId  String
+  status    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation("UserFriends", fields: [userId], references: [id])
+  friend    User     @relation("FriendUser", fields: [friendId], references: [id])
+}
+
+model Challenge {
+  id           String                   @id @default(uuid())
+  creatorId    String
+  title        String
+  description  String
+  startDate    DateTime
+  endDate      DateTime
+  goalType     GoalType
+  targetValue  Float
+  unit         String
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
+  creator      User                     @relation("ChallengeCreator", fields: [creatorId], references: [id])
+  participants ChallengeParticipation[]
+}
+
+model ChallengeParticipation {
+  id           String   @id @default(uuid())
+  challengeId  String
+  userId       String
+  currentValue Float
+  lastUpdated  DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  challenge    Challenge @relation(fields: [challengeId], references: [id])
+  user         User     @relation(fields: [userId], references: [id])
+}
+
+model Workout {
+  id             String   @id @default(uuid())
+  userId         String
+  title          String
+  description    String?
+  duration       Int
+  caloriesBurned Float?
+  workoutType    String
+  date           DateTime
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [id])
+}
+
+model NutritionLog {
+  id            String   @id @default(uuid())
+  userId        String
+  date          DateTime
+  totalCalories Float
+  totalProtein  Float
+  totalCarbs    Float
+  totalFat      Float
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id])
+  meals         Meal[]
+}
+
+model Meal {
+  id             String       @id @default(uuid())
+  nutritionLogId String
+  name           String
+  calories       Float
+  protein        Float
+  carbs          Float
+  fat            Float
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  nutritionLog   NutritionLog @relation(fields: [nutritionLogId], references: [id])
+}
+
+model BodyMeasurement {
+  id                  String   @id @default(uuid())
+  userId              String
+  weight              Float?
+  height              Float?
+  bodyFatPercentage   Float?
+  waistCircumference  Float?
+  chestCircumference  Float?
+  armCircumference    Float?
+  thighCircumference  Float?
+  date                DateTime
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  user                User     @relation(fields: [userId], references: [id])
+}
